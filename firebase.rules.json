@@ -1,0 +1,57 @@
+{
+  "rules": {
+    "idekorbit": {
+      "days": {
+        "$day": {
+          ".read": "$day === (now - ((now + 32400000) % 86400000) + 86400000) + ''",
+          ".write": "!newData.exists() && data.child('expiresAt').isNumber() && data.child('expiresAt').val() <= now",
+          "expiresAt": {
+            ".write": "$day === (now - ((now + 32400000) % 86400000) + 86400000) + '' && newData.val() === (now - ((now + 32400000) % 86400000) + 86400000)"
+          },
+          "posts": {
+            "$id": {
+              ".write": "$day === (now - ((now + 32400000) % 86400000) + 86400000) + '' && !data.exists() && newData.exists()",
+              ".validate": "newData.hasChildren(['body','createdAt'])",
+              "body": {
+                ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 240"
+              },
+              "createdAt": {
+                ".validate": "newData.isNumber() && newData.val() === now"
+              },
+              "imageUrl": {
+                ".validate": "newData.isString() && newData.val().beginsWith('data:image/webp;base64,') && newData.val().length <= 700000"
+              },
+              "$other": {
+                ".validate": false
+              }
+            }
+          },
+          "events": {
+            "$id": {
+              ".write": "$day === (now - ((now + 32400000) % 86400000) + 86400000) + '' && !data.exists() && newData.exists()",
+              ".validate": "newData.hasChildren(['thoughtId','kind','createdAt']) && root.child('idekorbit').child('days').child($day).child('posts').child(newData.child('thoughtId').val()).exists()",
+              "thoughtId": {
+                ".validate": "newData.isString() && newData.val().length <= 64"
+              },
+              "kind": {
+                ".validate": "newData.val() === 'comfort' || newData.val() === 'empathy'"
+              },
+              "createdAt": {
+                ".validate": "newData.isNumber() && newData.val() === now"
+              },
+              "$other": {
+                ".validate": false
+              }
+            }
+          }
+        }
+      },
+      "index": {
+        ".read": true,
+        "$day": {
+          ".write": "($day === (now - ((now + 32400000) % 86400000) + 86400000) + '' && newData.val() === (now - ((now + 32400000) % 86400000) + 86400000)) || (!newData.exists() && data.isNumber() && data.val() <= now)"
+        }
+      }
+    }
+  }
+}
