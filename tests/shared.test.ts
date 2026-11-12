@@ -20,3 +20,10 @@ test('ignores events without a post and returns only latest twelve feed events',
  const d={posts:{one:{body:'오늘',createdAt:now}},events:{...events,missing:{thoughtId:'other',kind:'comfort' as const,createdAt:now}}};
  assert.equal(snapshot(d,now).thoughts[0].comfort,20);assert.equal(snapshot(d,now).events.length,12);assert.equal(snapshot(d,now).events[0].id,'19');
 });
+test('anonymous comments attach to their post, stream once, and remain readable in archives',()=>{
+ let data=applyStream(null,'/',{posts:{one:{body:'hello',createdAt:now}}});
+ for(const id of ['first','second','first'])data=applyStream(data,'/comments/'+id,{thoughtId:'one',body:id,createdAt:now+(id==='first'?1:2)});
+ data=applyStream(data,'/comments/orphan',{thoughtId:'missing',body:'ignored',createdAt:now});
+ const comments=snapshot(data,now).thoughts[0].comments!;
+ assert.equal(comments.length,2);assert.deepEqual(comments.map(c=>c.body),['first','second']);assert.deepEqual(Object.keys(comments[0]).sort(),['body','createdAt','id']);
+});

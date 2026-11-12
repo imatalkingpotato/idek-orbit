@@ -43,6 +43,24 @@
                 ".validate": false
               }
             }
+          },
+          "comments": {
+            "$id": {
+              ".write": "$day === (now - ((now + 32400000) % 86400000) + 86400000) + '' && !data.exists() && newData.exists()",
+              ".validate": "newData.hasChildren(['thoughtId','body','createdAt']) && root.child('idekorbit').child('days').child($day).child('posts').child(newData.child('thoughtId').val()).exists()",
+              "thoughtId": {
+                ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 64"
+              },
+              "body": {
+                ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 240"
+              },
+              "createdAt": {
+                ".validate": "newData.isNumber() && newData.val() === now"
+              },
+              "$other": {
+                ".validate": false
+              }
+            }
           }
         }
       },

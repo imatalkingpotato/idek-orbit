@@ -1,12 +1,13 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
-import {readShared,sendShared,reactShared,onSharedChange,listArchiveDays,readArchive} from '../lib/shared';
+import {readShared,sendShared,reactShared,onSharedChange,listArchiveDays,readArchive,commentShared} from '../lib/shared';
 import {LIMIT,dateLabel,ganjiLabel,dayKey,nextMidnight,type Thought,type Activity,type ReactionKind} from '../lib/orbit';
 import {archiveLabel,dayTimestamp} from '../lib/archive';
 import Scene,{ReactionButtons,ReactionIcon} from './scene';
+import Comments from './comments';
 import Music from './music';
 import CloudPassage from './clouds';
-import {mergeThoughts,mergeEvents,FLIGHT_DURATION_MS,type Launch} from '../lib/live';
+import {mergeThoughts,mergeEvents,mergeComments,FLIGHT_DURATION_MS,type Launch} from '../lib/live';
 const DEMO=['오늘은 아무것도 컨펌받고 싶지 않다.','퇴근이라는 행성에 착륙하고 싶어요','이 덱을 떠나고 싶지만…','사실 아까 그 아이디어 좋았어요.','오늘도 무사히 지나가기를','말하지 못한 마음은 여기에.','내일의 나에게 맡겨둡니다','다들 고생 많았어, 진짜.'];
 export default function Home(){
  const [now,setNow]=useState(0),[items,setItems]=useState<Thought[]>([]),[text,setText]=useState(''),[file,setFile]=useState<File|null>(null),[preview,setPreview]=useState('');
@@ -79,6 +80,11 @@ export default function Home(){
    }catch(error){say(error instanceof Error?error.message:'반응을 보내지 못했어요.');}
   }}finally{reactionRunning.current=false;setReactionBusy('');if(!isDemo.current)sync();}
  }
+ async function comment(item:Thought,body:string,id:string){
+  if(view.current||item.day!==dayKey(Date.now()+offset.current))throw Error('지난 궤도에는 댓글을 남길 수 없어요.');
+  const saved=isDemo.current?{id,body,createdAt:Date.now()}:await commentShared(item,body,id);
+  setItems(old=>old.map(x=>x.id===item.id&&x.day===item.day?{...x,comments:mergeComments(x.comments,[saved])}:x));
+ }
  const remaining=now?Math.max(0,Math.floor((nextMidnight(now)-now)/1000)):0,clock=[Math.floor(remaining/3600),Math.floor(remaining%3600/60),remaining%60].map(n=>String(n).padStart(2,'0')).join(':');
  const displayTime=archive?dayTimestamp(archive)!:now;
  const activeItem=items.find(x=>x.id===selected),recentEvents=events.slice(0,5);
@@ -95,6 +101,6 @@ export default function Home(){
     <button className="motion-button" type="button" onClick={()=>setPaused(!paused)} aria-pressed={paused} aria-label={paused?'궤도 움직임 재개':'궤도 움직임 멈추기'}><svg viewBox="0 0 24 24" aria-hidden="true">{paused?<path d="m8 5 12 7-12 7Z"/>:<><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></>}</svg></button>
    </form>:<div className="archive-summary"><span>{archiveLoading?'지난 궤도를 불러오는 중…':'지난 궤도 · 읽기 전용'}</span><button onClick={()=>void chooseDay(dayKey())}>오늘의 궤도로 돌아가기</button></div>}<div className="composer-foot">{!archive&&<span><b>{clock}</b> 후 새 궤도</span>}{demo&&<button type="button" onClick={()=>{setGhosts(items);setResetAt(Date.now());setItems([]);setSelected(null);setEvents([]);if(ghostTimer.current)clearTimeout(ghostTimer.current);ghostTimer.current=setTimeout(()=>setGhosts([]),2300)}}>자정 연출 미리보기</button>}</div><div key={noticeKey} className={`notice ${notice==='속마음이 궤도에 안착했어요.'?'landed-notice':''}`} role="status">{notice}</div>
   </section><Music/><footer>이덱떠 궤도 © {now?new Date(now).getFullYear():''}</footer>
-  {activeItem&&<div ref={reading} className="reading" role="dialog" aria-modal="false" aria-label="속마음 자세히 보기"><button className="close" aria-label="닫기" onClick={()=>setSelected(null)}>×</button><p className="full-thought">{activeItem.body}</p>{activeItem.imageUrl&&<img className="full-image" src={activeItem.imageUrl} alt="속마음에 첨부한 이미지"/>}<ReactionButtons item={activeItem} onReact={react} busy={archive?'archive':reactionBusy} labels/></div>}
+  {activeItem&&<div ref={reading} className="reading" role="dialog" aria-modal="false" aria-label="속마음 자세히 보기"><button className="close" aria-label="닫기" onClick={()=>setSelected(null)}>×</button><p className="full-thought">{activeItem.body}</p>{activeItem.imageUrl&&<img className="full-image" src={activeItem.imageUrl} alt="속마음에 첨부한 이미지"/>}<ReactionButtons item={activeItem} onReact={react} busy={archive?'archive':reactionBusy} labels/><Comments key={activeItem.id} item={activeItem} readOnly={!!archive} onSend={comment}/></div>}
  </div>{intro&&<div key={replay} className="intro" role="dialog" aria-modal="true" aria-label="궤도 진입 인트로"><div className="intro-paper"/><div className="intro-words"><span>말하지 못한 마음들이 모이는 곳</span><p>이덱떠 궤도에<br className="mobile-br"/> 진입하셨습니다</p><i/></div><CloudPassage/><button className="skip" onClick={()=>setIntro(false)}>건너뛰기 ↗</button></div>}</main>
 }

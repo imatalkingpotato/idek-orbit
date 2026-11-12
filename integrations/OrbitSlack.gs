@@ -2,9 +2,15 @@
 // No Slack credential is shipped to the website or the public repository.
 const ORBIT_DB = 'https://confirm-bell-default-rtdb.firebaseio.com/idekorbit';
 const ORBIT_SITE = 'https://imatalkingpotato.github.io/idek-orbit/';
+function stopOrbitNotifications() {
+  PropertiesService.getScriptProperties().setProperty('SLACK_DISABLED','true');
+  ScriptApp.getProjectTriggers().filter(t=>t.getHandlerFunction()==='pollOrbitPosts').forEach(t=>ScriptApp.deleteTrigger(t));
+  console.log('궤도 Slack 자동 알림이 중지되었습니다.');
+}
 function startOrbitNotifications() {
   const p = PropertiesService.getScriptProperties();
   requireWebhook_(p);
+  p.deleteProperty('SLACK_DISABLED');
   const existing = ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'pollOrbitPosts');
   if (!p.getProperty('ORBIT_STARTED_AT')) p.setProperty('ORBIT_STARTED_AT', String(Date.now()));
   if (!existing.length) ScriptApp.newTrigger('pollOrbitPosts').timeBased().everyMinutes(1).create();
@@ -12,7 +18,7 @@ function startOrbitNotifications() {
 }
 function testOrbitNotification() {
   postSlack_(requireWebhook_(PropertiesService.getScriptProperties()), {
-    text: '궤도 알림 봇이 진입했습니다',
+    text: '궤도가 욕을 보고 도망갔습니다',
     unfurl_links: false, unfurl_media: false
   });
   console.log('온보딩-채널에디터 연결 테스트 전송 완료');
@@ -21,7 +27,9 @@ function pollOrbitPosts() {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(1000)) return;
   try {
-    const p = PropertiesService.getScriptProperties(), hook = requireWebhook_(p);
+    const p = PropertiesService.getScriptProperties();
+    if(p.getProperty('SLACK_DISABLED')==='true')return;
+    const hook=requireWebhook_(p);
     const started = Number(p.getProperty('ORBIT_STARTED_AT'));
     if (!started) throw Error('startOrbitNotifications를 먼저 실행해 주세요.');
     const now = Date.now(), index = readOrbit_('/index') || {};
@@ -48,18 +56,10 @@ function pollOrbitPosts() {
   } finally { lock.releaseLock(); }
 }
 function orbitMessage_(id,post) {
-  const date = Utilities.formatDate(new Date(post.createdAt),'Asia/Seoul','yyyy-MM-dd');
-  const url = ORBIT_SITE + '?day=' + date + '&thought=' + encodeURIComponent(id);
-  return {
-    text: '🌌 궤도에 새로운 속마음이 도착했어요.\n' + post.body.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '\n' + url,
-    mrkdwn:false,parse:'none',link_names:false,
-    blocks: [
-      {type:'section',text:{type:'plain_text',text:'🌌 궤도에 새로운 속마음이 도착했어요.',emoji:true}},
-      {type:'section',text:{type:'plain_text',text:post.body,emoji:true}},
-      ...(post.imageUrl ? [{type:'context',elements:[{type:'plain_text',text:'📎 첨부 이미지는 궤도에서 볼 수 있어요.'}]}] : []),
-      {type:'actions',elements:[{type:'button',text:{type:'plain_text',text:'궤도에서 보기'},url}]}
-    ], unfurl_links:false,unfurl_media:false
-  };
+  const date=Utilities.formatDate(new Date(post.createdAt),'Asia/Seoul','yyyy-MM-dd');
+  const url=ORBIT_SITE+'?day='+date+'&thought='+encodeURIComponent(id);
+  const text='🌌 궤도에 새로운 속마음이 도착했어요.';
+  return {text,blocks:[{type:'section',text:{type:'plain_text',text,emoji:true},accessory:{type:'button',text:{type:'plain_text',text:'궤도에서 보기'},url}}],unfurl_links:false,unfurl_media:false};
 }
 function requireWebhook_(p) {
   const value = p.getProperty('SLACK_WEBHOOK_URL');

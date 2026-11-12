@@ -27,3 +27,8 @@ test('flight starts at input, follows an arc, and settles exactly at the moving 
  for(let i=0;i<=100;i++){const point=flightPoint(from,to,i/100);assert.equal(point.rotation,0);assert.ok(point.scale<=1);assert.ok(point.x<=to.x);}
  assert.deepEqual(flightPoint(from,{x:620,y:310},2),{x:620,y:310,scale:1,rotation:0});
 });
+test('comment acknowledgment and stale snapshots cannot erase or double-count replies',()=>{
+ const comment={id:'c1',body:'reply',createdAt:2};const recent={...row,comments:[comment]};
+ const merged=mergeThoughts([recent],[row],day);assert.equal(merged[0].comments?.length,1);
+ assert.equal(mergeThoughts(merged,[recent],day)[0].comments?.length,1);
+});

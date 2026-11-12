@@ -1,9 +1,10 @@
-import type {Thought,Activity} from './orbit';
+import type {Thought,Activity,OrbitComment} from './orbit';
+export function mergeComments(a:OrbitComment[]=[],b:OrbitComment[]=[]){return [...new Map([...a,...b].map(c=>[c.id,c])).values()].sort((x,y)=>x.createdAt-y.createdAt||x.id.localeCompare(y.id))}
 // Today's entries and reaction totals only grow. Merge overlapping reads/writes
 // monotonically so a slower response cannot erase a post or count a click twice.
 export function mergeThoughts(current:Thought[],incoming:Thought[],day:string):Thought[]{
  const rows=new Map(current.filter(x=>x.day===day).map(x=>[x.id,x]));
- for(const row of incoming){if(row.day!==day)continue;const old=rows.get(row.id);rows.set(row.id,old?{...row,comfort:Math.max(old.comfort,row.comfort),empathy:Math.max(old.empathy,row.empathy),mine:[...new Set([...old.mine,...row.mine])]}:row);}
+ for(const row of incoming){if(row.day!==day)continue;const old=rows.get(row.id);rows.set(row.id,old?{...row,comfort:Math.max(old.comfort,row.comfort),empathy:Math.max(old.empathy,row.empathy),mine:[...new Set([...old.mine,...row.mine])],comments:mergeComments(old.comments,row.comments)}:row);}
  return [...rows.values()].sort((a,b)=>b.createdAt-a.createdAt||a.id.localeCompare(b.id));
 }
 export function mergeEvents(current:Activity[],incoming:Activity[]):Activity[]{

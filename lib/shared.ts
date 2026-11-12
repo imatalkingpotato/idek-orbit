@@ -1,6 +1,6 @@
 import {dayKey,nextMidnight,type ReactionKind} from './orbit';
 import {archiveDays,dayTimestamp} from './archive';
-import {snapshot,applyStream,type DayData,type StoredPost,type StoredEvent} from './shared-state';
+import {snapshot,applyStream,type DayData,type StoredPost,type StoredEvent,type StoredComment} from './shared-state';
 const ROOT='https://confirm-bell-default-rtdb.firebaseio.com/idekorbit';
 let active='',cache:DayData|null=null,stream:EventSource|null=null,ready=false,online=false,lastRead=0,clockOffset=0;
 const listeners=new Set<()=>void>();
@@ -67,4 +67,11 @@ export async function readArchive(day:string){
  const n=dayTimestamp(day);if(n===null||day>=dayKey(sharedNow()))throw Error('지난 날짜의 궤도를 선택해 주세요.');
  const data=await request('/days/'+nextMidnight(n)) as DayData|null;
  return snapshot(data,n);
+}
+
+export async function commentShared(thought: {id:string;day:string},body:string,id:string){
+ const key=bucket();if(thought.day!==dayKey(sharedNow()))throw Error('지난 궤도에는 댓글을 남길 수 없어요.');
+ const comment=await createOnce<StoredComment>('/days/'+key+'/comments/'+id,{thoughtId:thought.id,body,createdAt:{'.sv':'timestamp'}});
+ if(active===key){cache=applyStream(cache,'/comments/'+id,comment);listeners.forEach(fn=>fn())}
+ return {id,body:comment.body,createdAt:comment.createdAt};
 }
