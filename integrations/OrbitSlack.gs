@@ -12,7 +12,7 @@ function startOrbitNotifications() {
 }
 function testOrbitNotification() {
   postSlack_(requireWebhook_(PropertiesService.getScriptProperties()), {
-    text: '🌌 이덱떠 궤도 알림이 연결되었어요. 앞으로 새 속마음이 올라오면 이 채널로 알려드릴게요.\n' + ORBIT_SITE,
+    text: '궤도 알림 봇이 진입했습니다',
     unfurl_links: false, unfurl_media: false
   });
   console.log('온보딩-채널에디터 연결 테스트 전송 완료');

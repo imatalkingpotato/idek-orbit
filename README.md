@@ -24,8 +24,8 @@ Firebase Realtime Database의 별도 `idekorbit` 경로를 사용합니다. 기�
 
 ## Slack 새 글 알림
 
-`integrations/OrbitSlack.gs`를 전용 Google Apps Script 프로젝트에서 실행합니다. 스크립트 속성 `SLACK_WEBHOOK_URL`에는 **온보딩-채널에디터**로 연결된 Incoming Webhook만 저장합니다. 비밀값은 저장소나 프런트엔드에 넣지 않습니다.
+**궤도 알림 봇** 전용 Slack 앱을 사용합니다. `integrations/OrbitSlack.gs`를 전용 Google Apps Script 프로젝트에서 실행합니다. 스크립트 속성 `SLACK_WEBHOOK_URL`에는 **온보딩-채널에디터**로 연결된 Incoming Webhook만 저장합니다. 비밀값은 저장소나 프런트엔드에 넣지 않습니다.
 
-`startOrbitNotifications`를 실행하면 설치 이후 새 글만 확인하는 1분 간격 트리거가 만들어집니다. `testOrbitNotification`은 연결 테스트 1건을 전송합니다. 글 내용은 plain_text로 보내 사용자 입력이 Slack 멘션이나 링크 명령으로 해석되지 않도록 합니다. 이미지는 Slack에 재업로드하지 않고 원래 글 링크로 엽니다.
+`startOrbitNotifications`를 실행하면 설치 이후 새 글만 확인하는 1분 간격 트리거가 만들어집니다. `testOrbitNotification`은 “궤도 알림 봇이 진입했습니다”라는 연결 테스트 1건을 전송합니다. 글 내용은 plain_text로 보내 사용자 입력이 Slack 멘션이나 링크 명령으로 해석되지 않도록 합니다. 이미지는 Slack에 재업로드하지 않고 원래 글 링크로 엽니다.
 
 전송 성공 이후에만 중복 방지 표식을 남기고, 실패하면 다음 실행에서 다시 시도합니다. 자정을 넘긴 미전송 글도 처리합니다. 다만 Slack이 수신한 직후 응답이나 성공 표식 저장이 실패하는 극단적인 경우에는 중복 알림이 생길 수 있습니다. Google 트리거 지연에 따라 알림이 1분보다 늦을 수 있습니다. 기존 Airtable 발행 알림 스크립트와는 별도 프로젝트입니다.
