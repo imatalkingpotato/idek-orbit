@@ -1,4 +1,5 @@
 import {dayKey,nextMidnight,type ReactionKind} from './orbit';
+import {archiveDays,dayTimestamp} from './archive';
 import {snapshot,applyStream,type DayData,type StoredPost,type StoredEvent} from './shared-state';
 const ROOT='https://confirm-bell-default-rtdb.firebaseio.com/idekorbit';
 let active='',cache:DayData|null=null,stream:EventSource|null=null,ready=false,online=false,lastRead=0,clockOffset=0;
@@ -15,10 +16,7 @@ function ensureStream(){
  stream=new EventSource(ROOT+'/days/'+key+'.json');
  for(const type of ['put','patch'])stream.addEventListener(type,e=>{if(active!==key)return;try{const event=JSON.parse((e as MessageEvent).data);cache=applyStream(cache,event.path,event.data,type==='patch');ready=true;online=true;lastRead=Date.now();listeners.forEach(fn=>fn())}catch{online=false}});
  stream.onerror=()=>{online=false};stream.addEventListener('cancel',()=>{online=false;stream?.close();stream=null});
- // Expired posts cannot be read after KST midnight; reclaim them on the next visit.
- void cleanup();
 }
-async function cleanup(){try{const index=await request('/index') as Record<string,number>|null;for(const [key,expiry] of Object.entries(index||{})){if(expiry>sharedNow())continue;await request('/days/'+key,{method:'DELETE'});await request('/index/'+key,{method:'DELETE'})}}catch{/* Try again on the next visit/day. */}}
 export function onSharedChange(fn:()=>void){listeners.add(fn);ensureStream();return()=>{listeners.delete(fn);if(!listeners.size){stream?.close();stream=null}}}
 export async function readShared(force=false){
  ensureStream();const key=active;
@@ -28,6 +26,7 @@ export async function readShared(force=false){
   // Never replace a newer stream event with an older HTTP response.
   if(!online||!ready||force){cache=data;ready=true}lastRead=Date.now();
  }
+ if(bucket()!==key)return readShared();
  return snapshot(cache,sharedNow());
 }
 async function ensureDay(key:string){
@@ -61,4 +60,11 @@ export async function reactShared(thoughtId:string,kind:ReactionKind,id:string){
  const state=snapshot(cache,sharedNow()),thought=state.thoughts.find(x=>x.id===thoughtId);
  if(!thought)throw Error('이 속마음은 자정에 흘려보냈어요.');
  return {day:state.day,counts:{comfort:thought.comfort,empathy:thought.empathy},event:{id,...event,body:thought.body}};
+}
+
+export async function listArchiveDays(){return archiveDays(await request('/index'),sharedNow())}
+export async function readArchive(day:string){
+ const n=dayTimestamp(day);if(n===null||day>=dayKey(sharedNow()))throw Error('지난 날짜의 궤도를 선택해 주세요.');
+ const data=await request('/days/'+nextMidnight(n)) as DayData|null;
+ return snapshot(data,n);
 }

@@ -3,8 +3,8 @@
     "idekorbit": {
       "days": {
         "$day": {
-          ".read": "$day === (now - ((now + 32400000) % 86400000) + 86400000) + ''",
-          ".write": "!newData.exists() && data.child('expiresAt').isNumber() && data.child('expiresAt').val() <= now",
+          ".read": "data.exists() || $day === (now - ((now + 32400000) % 86400000) + 86400000) + ''",
+          ".write": false,
           "expiresAt": {
             ".write": "$day === (now - ((now + 32400000) % 86400000) + 86400000) + '' && newData.val() === (now - ((now + 32400000) % 86400000) + 86400000)"
           },
@@ -49,7 +49,7 @@
       "index": {
         ".read": true,
         "$day": {
-          ".write": "($day === (now - ((now + 32400000) % 86400000) + 86400000) + '' && newData.val() === (now - ((now + 32400000) % 86400000) + 86400000)) || (!newData.exists() && data.isNumber() && data.val() <= now)"
+          ".write": "$day === (now - ((now + 32400000) % 86400000) + 86400000) + '' && newData.val() === (now - ((now + 32400000) % 86400000) + 86400000)"
         }
       }
     }
