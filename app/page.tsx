@@ -3,7 +3,7 @@ import {useEffect,useRef,useState} from 'react';
 import {readShared,sendShared,reactShared,onSharedChange,listArchiveDays,readArchive,commentShared} from '../lib/shared';
 import {LIMIT,dateLabel,ganjiLabel,dayKey,nextMidnight,type Thought,type Activity,type ReactionKind} from '../lib/orbit';
 import {archiveLabel,dayTimestamp} from '../lib/archive';
-import Scene,{ReactionButtons,ReactionIcon} from './scene';
+import Scene,{ReactionButtons,ReactionIcon,CommentIcon} from './scene';
 import Comments from './comments';
 import Music from './music';
 import CloudPassage from './clouds';
@@ -82,8 +82,11 @@ export default function Home(){
  }
  async function comment(item:Thought,body:string,id:string){
   if(view.current||item.day!==dayKey(Date.now()+offset.current))throw Error('지난 궤도에는 댓글을 남길 수 없어요.');
+  const version=viewVersion.current;
   const saved=isDemo.current?{id,body,createdAt:Date.now()}:await commentShared(item,body,id);
+  if(view.current||version!==viewVersion.current||item.day!==dayKey(Date.now()+offset.current))return;
   setItems(old=>old.map(x=>x.id===item.id&&x.day===item.day?{...x,comments:mergeComments(x.comments,[saved])}:x));
+  setEvents(old=>mergeEvents(old,[{id:`comment:${saved.id}`,thoughtId:item.id,body:item.body,kind:'comment',createdAt:saved.createdAt}]));
  }
  const remaining=now?Math.max(0,Math.floor((nextMidnight(now)-now)/1000)):0,clock=[Math.floor(remaining/3600),Math.floor(remaining%3600/60),remaining%60].map(n=>String(n).padStart(2,'0')).join(':');
  const displayTime=archive?dayTimestamp(archive)!:now;
@@ -91,7 +94,7 @@ export default function Home(){
  return <main><div className="space" inert={intro||undefined}>
   <header><div className="brand-block"><a className="brand" href={import.meta.env.BASE_URL} aria-label="이덱떠 궤도 홈"><span className="brand-line"><i/><span>이덱떠 궤도</span></span><span className="brand-en">THE ORBIT OF UNSAID THINGS</span></a><button className="intro-replay" onClick={()=>{setIntro(true);setReplay(v=>v+1)}}>인트로 다시 보기</button></div>
    <div className="date"><h1>{now?dateLabel(displayTime):'오늘의 궤도'}</h1><span className="ganji" title="음력 연도 기준">{now?ganjiLabel(displayTime):''}</span><select className="archive-select" aria-label="날짜별 궤도" value={archive||dayKey(now||Date.now())} disabled={sending||!!reactionBusy} onChange={e=>void chooseDay(e.target.value)}>{[...new Set([dayKey(now||Date.now()),...dates,...(archive?[archive]:[])])].sort().reverse().map(d=><option key={d} value={d}>{archiveLabel(d)}{d===dayKey(now||Date.now())?' · 오늘':''}</option>)}</select></div>
-   <aside className="activity" aria-label="실시간 공감과 위로 소식"><span className="activity-label"><i/>{archive?'그날의 소식':'궤도의 소식'}</span>{recentEvents.length?<div className="activity-list" data-count={recentEvents.length} style={{height:recentEvents.length*34}}>{recentEvents.map((event,index)=><div key={event.id} className="activity-slot" style={{transform:`translateY(${index*34}px)`}}><div className="activity-event"><ReactionIcon kind={event.kind}/><p><q>{event.body}</q><span>{event.kind==='comfort'?'위로를':'공감을'} 받았습니다</span></p></div></div>)}</div>:<p className="activity-empty">아직 고요한 궤도</p>}</aside>
+   <aside className="activity" aria-label="실시간 공감과 위로, 댓글 소식"><span className="activity-label"><i/>{archive?'그날의 소식':'궤도의 소식'}</span>{recentEvents.length?<div className="activity-list" data-count={recentEvents.length} style={{height:recentEvents.length*34}}>{recentEvents.map((event,index)=><div key={event.id} className="activity-slot" style={{transform:`translateY(${index*34}px)`}}><div className="activity-event">{event.kind==='comment'?<CommentIcon/>:<ReactionIcon kind={event.kind}/>}<p><q>{event.body}</q><span>{event.kind==='comment'?'댓글이 달렸습니다':event.kind==='comfort'?'위로를 받았습니다':'공감을 받았습니다'}</span></p></div></div>)}</div>:<p className="activity-empty">아직 고요한 궤도</p>}</aside>
   </header>
   <Scene items={items} paused={paused} intro={intro} selected={selected} select={setSelected} react={react} busy={archive?'archive':reactionBusy} fresh={fresh} launch={launch} ghosts={ghosts} resetAt={resetAt} loaded={loaded}/>
   <section className="composer" aria-label="속마음 보내기"><div className="composer-label"><span>{demo?'미리보기':!connected&&loaded?'연결을 기다리고 있어요':''}</span><span>{items.length}개의 속마음</span></div>

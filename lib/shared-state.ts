@@ -8,7 +8,7 @@ export function snapshot(data:DayData|null,now:number){
  const thoughts:Thought[]=Object.entries(posts).map(([id,p])=>({id,body:p.body,createdAt:p.createdAt,day,imageUrl:p.imageUrl||null,comfort:0,empathy:0,mine:[],comments:[]}));
  const lookup=new Map(thoughts.map(p=>[p.id,p]));
  for(const [id,e] of Object.entries(data?.events||{})){const p=lookup.get(e.thoughtId);if(!p||!['comfort','empathy'].includes(e.kind))continue;p[e.kind]++;events.push({id,...e,body:p.body})}
- for(const [id,c] of Object.entries(data?.comments||{})){const p=lookup.get(c.thoughtId);if(!p||typeof c.body!=='string'||!c.body.trim()||!Number.isFinite(c.createdAt))continue;p.comments!.push({id,body:c.body,createdAt:c.createdAt})}
+ for(const [id,c] of Object.entries(data?.comments||{})){const p=lookup.get(c.thoughtId);if(!p||typeof c.body!=='string'||!c.body.trim()||!Number.isFinite(c.createdAt))continue;p.comments!.push({id,body:c.body,createdAt:c.createdAt});events.push({id:`comment:${id}`,thoughtId:c.thoughtId,body:p.body,kind:'comment',createdAt:c.createdAt})}
  for(const p of thoughts)p.comments!.sort((a,b)=>a.createdAt-b.createdAt||a.id.localeCompare(b.id));
  thoughts.sort((a,b)=>a.createdAt-b.createdAt||a.id.localeCompare(b.id));events.sort((a,b)=>b.createdAt-a.createdAt||b.id.localeCompare(a.id));
  return {thoughts,events:events.slice(0,12),day,now};

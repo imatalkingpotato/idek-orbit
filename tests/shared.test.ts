@@ -27,3 +27,13 @@ test('anonymous comments attach to their post, stream once, and remain readable 
  const comments=snapshot(data,now).thoughts[0].comments!;
  assert.equal(comments.length,2);assert.deepEqual(comments.map(c=>c.body),['first','second']);assert.deepEqual(Object.keys(comments[0]).sort(),['body','createdAt','id']);
 });
+
+
+test('comment activity uses the original post only and interleaves with reactions without ID collisions',()=>{
+ const data={posts:{one:{body:'원래 속마음',createdAt:now}},events:{same:{thoughtId:'one',kind:'comfort' as const,createdAt:now}},comments:{same:{thoughtId:'one',body:'소식에 나오면 안 되는 댓글',createdAt:now+1}}};
+ const result=snapshot(data,now);
+ assert.deepEqual(result.events.map(e=>[e.id,e.kind,e.body]),[['comment:same','comment','원래 속마음'],['same','comfort','원래 속마음']]);
+ assert.equal(JSON.stringify(result.events).includes('소식에 나오면 안 되는 댓글'),false);
+ assert.equal(result.thoughts[0].comfort,1);
+ assert.equal(snapshot(applyStream(data,'/comments/same',data.comments.same),now).events.length,2);
+});

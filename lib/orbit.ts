@@ -30,7 +30,7 @@ export function ganjiLabel(now:number) {
 export type ReactionKind='comfort'|'empathy';
 export type OrbitComment={id:string;body:string;createdAt:number};
 export type Thought={id:string;body:string;day:string;createdAt:number;imageUrl?:string|null;comfort:number;empathy:number;mine:ReactionKind[];comments?:OrbitComment[]};
-export type Activity={id:string;thoughtId:string;body:string;kind:ReactionKind;createdAt:number};
+export type Activity={id:string;thoughtId:string;body:string;kind:ReactionKind|'comment';createdAt:number};
 
 // Fill the least occupied orbit first, preserving older posts when new ones arrive.
 export function thoughtOrbits(items:Thought[]){
